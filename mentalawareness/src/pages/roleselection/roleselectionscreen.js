@@ -4,20 +4,22 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const theme = {
-  colors: {
-    primary: "#6A85B6",
-    accent: "#B6CEE8",
-    text: "#333333",
-    buttonText: "#FFFFFF",
-  },
-};
+    colors: {
+      primary: "#faaca8",
+      accent: "#faaca8",
+      background: "#F2F6FF",
+      text: "#333333",
+      placeholder: "#7A7A7A",
+      buttonText: "#FFFFFF",
+    },
+  };
 
 export default function RoleSelectionScreen({ navigation }) {
   return (
-    <LinearGradient
-      colors={["#6A85B6", "#B6CEE8"]}
-      style={styles.gradientBackground}
-    >
+     <LinearGradient
+            colors={["#ddd6f3", "#faaca8"]}
+            style={styles.gradientBackground}
+          > 
       <View style={styles.container}>
         <Text style={styles.title}>Who are you?</Text>
         <Text style={styles.subtitle}>Let us know to personalize your experience!</Text>
@@ -36,7 +38,7 @@ export default function RoleSelectionScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.optionButton}
-          onPress={() => navigation.navigate("UserScreen")}
+          onPress={() => navigation.navigate("UserHomePage")}
         >
           <MaterialCommunityIcons
             name="account-circle"

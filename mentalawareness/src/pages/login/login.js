@@ -5,15 +5,18 @@ import {
   KeyboardAvoidingView,
   TouchableOpacity,
   Text,
+  Image
 } from "react-native";
 import { TextInput, Button, Provider as PaperProvider } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
+
+
 // import theme from "../../styles/theme/theme";
 
 const theme = {
   colors: {
-    primary: "#6A85B6",
-    accent: "#B6CEE8",
+    primary: "#faaca8",
+    accent: "#faaca8",
     background: "#F2F6FF",
     text: "#333333",
     placeholder: "#7A7A7A",
@@ -28,11 +31,15 @@ export default function LoginScreen({ navigation }) {
   return (
     <PaperProvider theme={theme}>
       <LinearGradient
-        colors={["#6A85B6", "#B6CEE8"]}
+        colors={["#ddd6f3", "#faaca8"]}
         style={styles.gradientBackground}
-      >
+      > 
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
           <View style={styles.formContainer}>
+          <Image
+              source={require("../../assets/images/logo.png")} // Path to your logo
+              style={styles.logo}
+            />
             <Text style={styles.headerText}>Welcome Back</Text>
             <TextInput
               label="Email"
@@ -127,4 +134,11 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: "bold",
   },
+  logo: {
+  width: 100, // Adjust the width as per your logo size
+  height: 100, // Adjust the height as per your logo size
+  resizeMode: "contain", // Ensure the logo is not stretched
+  alignSelf: "center", // Center the logo
+  marginBottom: 10, // Space between logo and form
+}
 });
