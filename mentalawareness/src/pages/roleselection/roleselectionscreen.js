@@ -38,7 +38,7 @@ export default function RoleSelectionScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.optionButton}
-          onPress={() => navigation.navigate("UserHomePage")}
+          onPress={() => navigation.navigate("ProfileScreen")}
         >
           <MaterialCommunityIcons
             name="account-circle"

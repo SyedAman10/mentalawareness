@@ -5,39 +5,69 @@ import {
   KeyboardAvoidingView,
   TouchableOpacity,
   Text,
-  Image
+  Image,
+  Alert,
 } from "react-native";
 import { TextInput, Button, Provider as PaperProvider } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
+import { auth } from "../../../firebaseConfig";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { MaterialIcons } from "@expo/vector-icons"; // Import MaterialIcons
 
 const theme = {
-    colors: {
-      primary: "#faaca8",
-      accent: "#faaca8",
-      background: "#F2F6FF",
-      text: "#333333",
-      placeholder: "#7A7A7A",
-      buttonText: "#FFFFFF",
-    },
-  };
+  colors: {
+    primary: "#faaca8",
+    accent: "#faaca8",
+    background: "#F2F6FF",
+    text: "#333333",
+    placeholder: "#7A7A7A",
+    buttonText: "#FFFFFF",
+  },
+};
 
-export default function SignUpScreen({navigation}) {
+export default function SignUpScreen({ navigation }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const handleSignUp = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: name });
+
+      console.log("User registered:", user);
+      Alert.alert("Success", "Account created successfully!", [
+        { text: "OK", onPress: () => navigation.navigate("RoleSelection") },
+      ]);
+    } catch (error) {
+      console.error("Error during signup:", error);
+      Alert.alert("Signup Error", error.message);
+    }
+  };
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
 
   return (
     <PaperProvider theme={theme}>
       <LinearGradient
-       colors={["#ddd6f3", "#faaca8"]}
+        colors={["#ddd6f3", "#faaca8"]}
         style={styles.gradientBackground}
       >
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
           <View style={styles.formContainer}>
-          <Image
-                        source={require("../../assets/images/logo.png")} // Path to your logo
-                        style={styles.logo}
-                      />
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.logo}
+            />
             <Text style={styles.headerText}>Create Your Account</Text>
             <TextInput
               label="Name"
@@ -56,24 +86,33 @@ export default function SignUpScreen({navigation}) {
               keyboardType="email-address"
               theme={{ colors: { primary: theme.colors.primary } }}
             />
+            <View style={styles.passwordInputContainer}>
             <TextInput
               label="Password"
               value={password}
               onChangeText={(text) => setPassword(text)}
-              style={styles.input}
+              style={[styles.input, styles.passwordInput]}
               mode="outlined"
-              secureTextEntry
+              secureTextEntry={!isPasswordVisible}
               theme={{ colors: { primary: theme.colors.primary } }}
             />
+             <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIconContainer}>
+                  <MaterialIcons
+                    name={isPasswordVisible ? "visibility" : "visibility-off"}
+                    size={24}
+                    color={theme.colors.placeholder}
+                  />
+                </TouchableOpacity>
+          </View>
             <Button
               mode="contained"
-              onPress={() => navigation.navigate("RoleSelection")} // Navigate to RoleSelection
+              onPress={handleSignUp}
               style={styles.button}
               theme={{ colors: { primary: theme.colors.accent } }}
             >
               Sign Up
             </Button>
-            <TouchableOpacity  onPress={() => navigation.navigate("Login")}>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
               <Text style={styles.footerText}>
                 Already have an account? <Text style={styles.linkText}>Log In</Text>
               </Text>
@@ -115,12 +154,19 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 15,
   },
-  logo: {
-    width: 100, // Adjust the width as per your logo size
-    height: 100, // Adjust the height as per your logo size
-    resizeMode: "contain", // Ensure the logo is not stretched
-    alignSelf: "center", // Center the logo
-    marginBottom: 10, // Space between logo and form
+  passwordInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+     marginBottom: 15,
+  },
+  passwordInput: {
+        flex: 1, // Ensure password input takes up available space
+    marginRight: 0,
+  },
+    eyeIconContainer: {
+    position: "absolute",
+    right: 10,
+    padding: 5,
   },
   button: {
     marginTop: 10,
@@ -135,5 +181,12 @@ const styles = StyleSheet.create({
   linkText: {
     color: theme.colors.primary,
     fontWeight: "bold",
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: "contain",
+    alignSelf: "center",
+    marginBottom: 10,
   },
 });
