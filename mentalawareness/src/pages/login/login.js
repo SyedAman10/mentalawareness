@@ -46,7 +46,7 @@ export default function LoginScreen({ navigation }) {
             // you can also use auth.currentUser.getIdToken() to get the token of the current user
             console.log('Token found, attempting auto login');
             setIsAuthenticated(true)
-            navigation.navigate('RoleSelection')
+            navigation.navigate('ProfileScreen')
         }
       } catch (error) {
         console.error("Error checking token:", error);
@@ -70,7 +70,7 @@ export default function LoginScreen({ navigation }) {
       console.log("User Logged in:", auth.currentUser);
       setIsAuthenticated(true)
       Alert.alert("Success", "Logged in successfully!", [
-        { text: "OK", onPress: () => navigation.navigate("RoleSelection") },
+        { text: "OK", onPress: () => navigation.navigate("ProfileScreen") },
       ]);
     } catch (error) {
       console.error("Error during sign in:", error);
@@ -208,6 +208,7 @@ const styles = StyleSheet.create({
     right: 10,
     padding: 5,
   },
+  
   button: {
     marginTop: 10,
     paddingVertical: 8,

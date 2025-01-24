@@ -8,6 +8,8 @@ import TherapistScreen from "../pages/therapistscreen/therapistscreen";
 
 import UserHomePage from "../pages/userscreen/userscreen";
 import ProfileScreen from "../profilescreen/profilescreen";
+import ChatScreen from "../pages/chatscreen/chatscreen";
+import UserListScreen from "../pages/userlist/userlist";
 
 
 const Stack = createStackNavigator();
@@ -20,13 +22,16 @@ export default function AppNavigator() {
           headerShown: false, // Hide headers for a cleaner look
         }}
       >
+      
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
         <Stack.Screen name="TherapistScreen" component={TherapistScreen} />
-    
+        <Stack.Screen name="ChatScreen" component={ChatScreen} />
         <Stack.Screen name="UserHomePage" component={UserHomePage} />
         <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+        <Stack.Screen name="UserListScreen" component={UserListScreen} />
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

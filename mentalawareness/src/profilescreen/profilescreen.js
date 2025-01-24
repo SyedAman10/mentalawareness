@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,12 @@ import {
   Image,
   Alert,
 } from "react-native";
-import { IconButton, Provider as PaperProvider } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
+import { db, auth } from "../../firebaseConfig"; // Import Firebase config
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 
 const theme = {
   colors: {
@@ -24,91 +27,138 @@ const theme = {
 };
 
 export default function ProfileScreen() {
-  const [name, setName] = useState("John Doe");
-  const [bio, setBio] = useState("Hello! I love connecting with people.");
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
   const [profilePicUri, setProfilePicUri] = useState(null);
+  const [userId, setUserId] = useState(null);
 
-  const handlePickProfilePic = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  // Fetch user data
+  const fetchUserData = async (uid) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setName(userData.displayName || "");
+        setBio(userData.bio || "");
+        setProfilePicUri(userData.profilePic || null);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to fetch user data: " + error.message);
+    }
+  };
 
-    if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission Required",
-        "You need to grant media library permissions to select a file."
-      );
+  // Save profile data
+  const handleSaveProfile = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User not logged in.");
       return;
     }
+    try {
+      await setDoc(
+        doc(db, "users", userId),
+        {
+          displayName: name,
+          bio: bio,
+          profilePic: profilePicUri,
+        },
+        { merge: true }
+      );
+      Alert.alert("Profile Updated", "Your profile has been successfully updated.");
+    } catch (error) {
+      Alert.alert("Error", "Failed to update profile: " + error.message);
+    }
+  };
 
+  // Pick profile picture
+  const handlePickProfilePic = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission Required", "Media library access is required.");
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
     });
-
     if (!result.canceled) {
       setProfilePicUri(result.assets[0].uri);
     }
   };
 
-  const handleSaveProfile = () => {
-    Alert.alert("Profile Updated", "Your profile has been successfully updated.");
-    // Add logic to save profile changes (e.g., API calls or state updates)
-  };
+  // Check for logged-in user
+  useEffect(() => {
+    const checkAuth = async () => {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          setUserId(user.uid);
+          await AsyncStorage.setItem("userId", user.uid);
+          fetchUserData(user.uid);
+        } else {
+          const storedUserId = await AsyncStorage.getItem("userId");
+          if (storedUserId) {
+            setUserId(storedUserId);
+            fetchUserData(storedUserId);
+          } else {
+            Alert.alert("Error", "User not logged in.");
+          }
+        }
+      });
+    };
+    checkAuth();
+  }, []);
 
   return (
-    <PaperProvider theme={theme}>
-      <LinearGradient
-        colors={["#ddd6f3", "#faaca8"]}
-        style={styles.gradientBackground}
-      >
-        <View style={styles.container}>
-          <Text style={styles.header}>Edit Profile</Text>
+    <LinearGradient
+      colors={["#ddd6f3", "#faaca8"]}
+      style={styles.gradientBackground}
+    >
+      <View style={styles.container}>
+        <Text style={styles.header}>Edit Profile</Text>
 
-          {/* Profile Picture */}
-          <TouchableOpacity onPress={handlePickProfilePic}>
-            {profilePicUri ? (
-              <Image
-                source={{ uri: profilePicUri }}
-                style={styles.profilePicLarge}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.defaultProfilePicLarge}>
-                <Text style={styles.defaultProfilePicText}>
-                  {name.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.profilePicText}>Tap to change profile picture</Text>
+        {/* Profile Picture */}
+        <TouchableOpacity onPress={handlePickProfilePic}>
+          {profilePicUri ? (
+            <Image
+              source={{ uri: profilePicUri }}
+              style={styles.profilePicLarge}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.defaultProfilePicLarge}>
+              <Text style={styles.defaultProfilePicText}>
+                {name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.profilePicText}>Tap to change profile picture</Text>
 
-          {/* Name Input */}
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter your name"
-            style={styles.input}
-          />
+        {/* Name Input */}
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Enter your name"
+          style={styles.input}
+        />
 
-          {/* Bio Input */}
-          <TextInput
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Write a short bio"
-            style={[styles.input, styles.bioInput]}
-            multiline
-          />
+        {/* Bio Input */}
+        <TextInput
+          value={bio}
+          onChangeText={setBio}
+          placeholder="Write a short bio"
+          style={[styles.input, styles.bioInput]}
+          multiline
+        />
 
-          {/* Save Button */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
-            <Text style={styles.saveButtonText}>Save Changes</Text>
-          </TouchableOpacity>
-     </View>
-      </LinearGradient>
-    </PaperProvider>
+        {/* Save Button */}
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
+          <Text style={styles.saveButtonText}>Save Changes</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
   );
 }
-
 const styles = StyleSheet.create({
   gradientBackground: {
     flex: 1,

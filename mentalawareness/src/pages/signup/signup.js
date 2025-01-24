@@ -7,17 +7,21 @@ import {
   Text,
   Image,
   Alert,
+  ActivityIndicator,
+  TextInput as RNTextInput,
 } from "react-native";
-import { TextInput, Button, Provider as PaperProvider } from "react-native-paper";
+import { Button, Provider as PaperProvider } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import { auth } from "../../../firebaseConfig";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { MaterialIcons } from "@expo/vector-icons"; // Import MaterialIcons
+import { db } from "../../../firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
+import { MaterialCommunityIcons } from "react-native-vector-icons";
 
 const theme = {
   colors: {
     primary: "#faaca8",
-    accent: "#faaca8",
+    accent: "#ddd6f3",
     background: "#F2F6FF",
     text: "#333333",
     placeholder: "#7A7A7A",
@@ -26,12 +30,20 @@ const theme = {
 };
 
 export default function SignUpScreen({ navigation }) {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [userType, setUserType] = useState(""); // Store user type selection
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
 
-  const handleSignUp = async () => {
+  const handleSignUp = async (selectedUserType) => {
+    if (!selectedUserType) {
+      Alert.alert("Error", "Please select a user type (Therapist or User).");
+      return;
+    }
+
+    setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -40,20 +52,27 @@ export default function SignUpScreen({ navigation }) {
       );
       const user = userCredential.user;
 
-      await updateProfile(user, { displayName: name });
+      await updateProfile(user, {
+        displayName: firstName,
+      });
 
-      console.log("User registered:", user);
-      Alert.alert("Success", "Account created successfully!", [
-        { text: "OK", onPress: () => navigation.navigate("RoleSelection") },
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        displayName: firstName,
+        firstName: firstName,
+        userType: selectedUserType, // Save userType
+      });
+
+      Alert.alert("Success", "Signed up successfully!", [
+        { text: "OK", onPress: () => navigation.navigate("Login") },
       ]);
     } catch (error) {
-      console.error("Error during signup:", error);
-      Alert.alert("Signup Error", error.message);
+      console.error("Error during sign up:", error);
+      Alert.alert("Sign Up Error", error.message);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const togglePasswordVisibility = () => {
-    setIsPasswordVisible(!isPasswordVisible);
   };
 
   return (
@@ -68,50 +87,73 @@ export default function SignUpScreen({ navigation }) {
               source={require("../../assets/images/logo.png")}
               style={styles.logo}
             />
-            <Text style={styles.headerText}>Create Your Account</Text>
-            <TextInput
-              label="Name"
-              value={name}
-              onChangeText={(text) => setName(text)}
+            <Text style={styles.headerText}>Create Account</Text>
+
+            <RNTextInput
+              placeholder="First Name"
+              value={firstName}
+              onChangeText={(text) => setFirstName(text)}
               style={styles.input}
-              mode="outlined"
-              theme={{ colors: { primary: theme.colors.primary } }}
             />
-            <TextInput
-              label="Email"
+            <RNTextInput
+              placeholder="Email"
               value={email}
               onChangeText={(text) => setEmail(text)}
               style={styles.input}
-              mode="outlined"
               keyboardType="email-address"
-              theme={{ colors: { primary: theme.colors.primary } }}
             />
-            <View style={styles.passwordInputContainer}>
-            <TextInput
-              label="Password"
-              value={password}
-              onChangeText={(text) => setPassword(text)}
-              style={[styles.input, styles.passwordInput]}
-              mode="outlined"
-              secureTextEntry={!isPasswordVisible}
-              theme={{ colors: { primary: theme.colors.primary } }}
-            />
-             <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIconContainer}>
-                  <MaterialIcons
-                    name={isPasswordVisible ? "visibility" : "visibility-off"}
-                    size={24}
-                    color={theme.colors.placeholder}
-                  />
-                </TouchableOpacity>
-          </View>
-            <Button
-              mode="contained"
-              onPress={handleSignUp}
-              style={styles.button}
-              theme={{ colors: { primary: theme.colors.accent } }}
-            >
-              Sign Up
-            </Button>
+            <View style={styles.passwordContainer}>
+              <RNTextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={(text) => setPassword(text)}
+                style={styles.input}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword((prev) => !prev)}
+                style={styles.eyeIconContainer}
+              >
+                <MaterialCommunityIcons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color="#7A7A7A"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Buttons for Sign Up as Therapist or User */}
+            <View style={styles.buttonContainer}>
+              <Button
+                icon="account-tie"
+                mode="contained"
+                onPress={() => handleSignUp("therapist")}
+                style={styles.button}
+                theme={{ colors: { primary: theme.colors.accent } }}
+                disabled={loading}
+              >
+                Sign Up as Therapist
+              </Button>
+
+              {/* Line separator with OR */}
+              <View style={styles.orContainer}>
+                <View style={styles.orLine} />
+                <Text style={styles.orText}>OR</Text>
+                <View style={styles.orLine} />
+              </View>
+
+              <Button
+                icon="account"
+                mode="contained"
+                onPress={() => handleSignUp("user")}
+                style={styles.button}
+                theme={{ colors: { primary: theme.colors.primary } }}
+                disabled={loading}
+              >
+                Sign Up as User
+              </Button>
+            </View>
+
             <TouchableOpacity onPress={() => navigation.navigate("Login")}>
               <Text style={styles.footerText}>
                 Already have an account? <Text style={styles.linkText}>Log In</Text>
@@ -153,24 +195,45 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 15,
+    width: "100%",
+    paddingVertical: 10,
+    paddingLeft: 12,
+    backgroundColor: "white",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
   },
-  passwordInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-     marginBottom: 15,
+  passwordContainer: {
+    position: "relative",
   },
-  passwordInput: {
-        flex: 1, // Ensure password input takes up available space
-    marginRight: 0,
-  },
-    eyeIconContainer: {
+  eyeIconContainer: {
     position: "absolute",
     right: 10,
-    padding: 5,
+    top: 12,
   },
   button: {
-    marginTop: 10,
+    marginBottom: 10,
     paddingVertical: 8,
+    width: "100%",
+  },
+  buttonContainer: {
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  orContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#ccc",
+  },
+  orText: {
+    marginHorizontal: 10,
+    fontSize: 16,
+    color: theme.colors.placeholder,
   },
   footerText: {
     textAlign: "center",
